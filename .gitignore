@@ -1,0 +1,16 @@
+# Python env, upstream source, model outputs
+.venv/
+repo/
+__pycache__/
+*.pyc
+
+# your stuff stays on your machine
+outputs/
+voices/
+settings.json
+
+# logs and scratch
+*.log
+shots/
+_omnivoice-src*
+assets/board-src.jpg.bak
