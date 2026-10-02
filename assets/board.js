@@ -8,9 +8,9 @@
 (() => {
   const BOARD_SRC = "__BOARD_SRC__";
   const data = __TRACES__;
-  // Pulse colour: white-hot core, warm yellow halo (current through copper).
+  // Pulse colour: soft green current, kept subtle on the dark board.
   const PULSES = 12, SPEED = [0.22, 0.42], TAIL = [80, 170], BURST = 0.2, POS_Y = 0.5;
-  const HALO = "255,214,92", CORE = "255,250,228";
+  const HALO = "122,205,146", CORE = "219,246,224";
   const KEY = "ov-fx";
 
   const mount = () => {
@@ -67,9 +67,9 @@
     sprite.width = sprite.height = 64;
     const sctx = sprite.getContext("2d");
     const g = sctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    g.addColorStop(0, "rgba(" + CORE + ",1)");
-    g.addColorStop(0.16, "rgba(255,238,170,0.92)");
-    g.addColorStop(0.42, "rgba(" + HALO + ",0.3)");
+    g.addColorStop(0, "rgba(" + CORE + ",0.95)");
+    g.addColorStop(0.16, "rgba(178,230,188,0.72)");
+    g.addColorStop(0.42, "rgba(" + HALO + ",0.22)");
     g.addColorStop(1, "rgba(" + HALO + ",0)");
     sctx.fillStyle = g;
     sctx.fillRect(0, 0, 64, 64);
@@ -142,13 +142,13 @@
         for (let i = 1; i < p.pts.length; i++) if (p.cum[i] > s0 && p.cum[i] < head) ctx.lineTo(p.pts[i][0], p.pts[i][1]);
         ctx.lineTo(b[0], b[1]);
         const g1 = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
-        g1.addColorStop(0, "rgba(" + HALO + ",0)"); g1.addColorStop(1, "rgba(" + HALO + ",0.42)");
+        g1.addColorStop(0, "rgba(" + HALO + ",0)"); g1.addColorStop(1, "rgba(" + HALO + ",0.3)");
         ctx.strokeStyle = g1; ctx.lineWidth = halo; ctx.stroke();
         const g2 = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
-        g2.addColorStop(0, "rgba(255,236,160,0)"); g2.addColorStop(1, "rgba(" + CORE + ",0.97)");
+        g2.addColorStop(0, "rgba(" + HALO + ",0)"); g2.addColorStop(1, "rgba(" + CORE + ",0.85)");
         ctx.strokeStyle = g2; ctx.lineWidth = core; ctx.stroke();
         if (pl.s < p.len) {
-          ctx.globalAlpha = 0.9;
+          ctx.globalAlpha = 0.7;
           ctx.drawImage(sprite, b[0] - headSize / 2, b[1] - headSize / 2, headSize, headSize);
           ctx.globalAlpha = 1;
         } else if (!pl.flashed) { pl.flashed = true; flashes.push({ x: p.end[0], y: p.end[1], t: 0 }); }
@@ -159,7 +159,7 @@
         const k = 1 - f.t / 420;
         if (k <= 0) { flashes.splice(n, 1); continue; }
         const size = (18 + 22 * (1 - k)) / scale;
-        ctx.globalAlpha = 0.75 * k;
+        ctx.globalAlpha = 0.5 * k;
         ctx.drawImage(sprite, f.x - size / 2, f.y - size / 2, size, size);
       }
       ctx.globalAlpha = 1;
