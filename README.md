@@ -17,7 +17,8 @@ The upstream demo works, but it's a bare test page. I wanted something I'd actua
 | 03 · Auto | The model picks a voice. Fix the seed to get the same one back. |
 | 04 · Batch | One line of text becomes one clip, same voice for all of them, zipped at the end. |
 | 05 · History | Every clip you've made, newest first, with the full settings and seed next to it. |
-| 06 · Model | Checkpoint, precision, LoRA adapter, Whisper model. Load and unload from here. |
+| 06 · Library | Clips and saved voices in one place: filter by date or search, play them back, zip matching clips or all voices for backup, delete a voice. |
+| 07 · Model | Checkpoint, precision, LoRA adapter, Whisper model. Load and unload from here. |
 
 The generation settings live under the tabs and apply everywhere: steps, guidance, speed, exact duration, seed, temperatures, chunking for long text, and number spelling. A reset button puts them back to the upstream defaults.
 

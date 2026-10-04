@@ -605,6 +605,186 @@ def h_open_outputs():
         return f"Could not open the folder: {e}"
 
 
+# ---------------------------------------------------------------------------
+# Library (clips + voices, filterable, zip export)
+# ---------------------------------------------------------------------------
+def lib_scan_clips():
+    """Every wav under outputs/ (including batch folders), newest first, with its meta."""
+    items = []
+    for root, _dirs, files in os.walk(OUTPUTS_DIR):
+        for f in files:
+            if not f.endswith(".wav"):
+                continue
+            p = os.path.join(root, f)
+            try:
+                mtime = dt.datetime.fromtimestamp(os.path.getmtime(p))
+            except OSError:
+                continue
+            meta = {}
+            mp = p[:-4] + ".json"
+            if os.path.exists(mp):
+                try:
+                    with open(mp, encoding="utf-8") as fh:
+                        meta = json.load(fh)
+                except Exception:
+                    meta = {}
+            label = f"{mtime:%Y-%m-%d %H:%M}  {os.path.relpath(p, OUTPUTS_DIR)}"
+            items.append({"label": label, "path": p, "meta": meta, "mtime": mtime})
+    items.sort(key=lambda it: it["mtime"], reverse=True)
+    return items
+
+
+def lib_filter_clips(items, date_from, date_to, query):
+    q = (query or "").strip().lower()
+    out = []
+    for it in items:
+        d = f"{it['mtime']:%Y-%m-%d}"
+        if date_from and d < date_from.strip():
+            continue
+        if date_to and d > date_to.strip():
+            continue
+        if q:
+            hay = " ".join([it["label"], str(it["meta"].get("text", "")), str(it["meta"].get("voice", ""))]).lower()
+            if q not in hay:
+                continue
+        out.append(it)
+    return out
+
+
+def lib_clip_choices(items):
+    ch = []
+    for it in items[:300]:
+        m = it["meta"]
+        extra = f" · {m['seconds']}s" if m.get("seconds") else ""
+        voice = f" · {m['voice']}" if m.get("voice") else ""
+        ch.append((it["label"] + extra + voice, it["path"]))
+    return ch
+
+
+def lib_refresh(date_from, date_to, query):
+    items = lib_filter_clips(lib_scan_clips(), date_from, date_to, query)
+    ch = lib_clip_choices(items)
+    n = len(items)
+    msg = f"{n} clip{'s' if n != 1 else ''} match." + (" Showing the newest 300." if n > 300 else "")
+    return gr.update(choices=ch, value=ch[0][1] if ch else None), msg
+
+
+def lib_pick(path):
+    if not path or not os.path.exists(path):
+        return None, ""
+    mp = path[:-4] + ".json"
+    info = ""
+    if os.path.exists(mp):
+        with open(mp, encoding="utf-8") as f:
+            info = json.dumps(json.load(f), indent=2, ensure_ascii=False)
+    return path, info
+
+
+def lib_zip_clips(date_from, date_to, query):
+    items = lib_filter_clips(lib_scan_clips(), date_from, date_to, query)
+    if not items:
+        return None, "Nothing to zip: no clips match the filters."
+    zdir = os.path.join(OUTPUTS_DIR, "library_zips")
+    os.makedirs(zdir, exist_ok=True)
+    stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    zpath = os.path.join(zdir, f"clips_{stamp}.zip")
+    with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
+        for it in items:
+            arc = os.path.relpath(it["path"], OUTPUTS_DIR)
+            z.write(it["path"], arc)
+            mp = it["path"][:-4] + ".json"
+            if os.path.exists(mp):
+                z.write(mp, os.path.relpath(mp, OUTPUTS_DIR))
+    log(f"Library zip: {len(items)} clips -> {os.path.relpath(zpath, ROOT)}")
+    return zpath, f"Zipped {len(items)} clip{'s' if len(items) != 1 else ''} with their settings."
+
+
+def lib_scan_voices():
+    out = []
+    for name in list_voices():
+        m = voice_meta(name)
+        created = (m.get("created") or "")[:16].replace("T", " ")
+        ra = m.get("ref_audio")
+        if ra and os.path.exists(os.path.join(VOICES_DIR, ra)):
+            try:
+                secs = round(sf.info(os.path.join(VOICES_DIR, ra)).duration, 1)
+            except Exception:
+                secs = None
+        else:
+            secs = None
+        out.append({"name": name, "created": created, "ref_text": m.get("ref_text", ""), "secs": secs})
+    return out
+
+
+def lib_voice_choices(items):
+    ch = []
+    for v in items:
+        extra = f" · {v['created']}" if v["created"] else ""
+        dur = f" · ref {v['secs']}s" if v["secs"] else ""
+        ch.append((v["name"] + extra + dur, v["name"]))
+    return ch
+
+
+def lib_voice_pick(name):
+    if not name:
+        return None, "", None
+    m = voice_meta(name)
+    ra = m.get("ref_audio")
+    p = os.path.join(VOICES_DIR, ra) if ra else None
+    return (p if p and os.path.exists(p) else None), (m.get("ref_text") or ""), p
+
+
+def lib_delete_voice(name):
+    """Outputs: [voice dropdown, preview audio, stored transcript, status msg, clone tab voice, batch tab voice]."""
+    if not name:
+        return gr.update(), None, "", "Pick a voice to delete.", gr.update(), gr.update()
+    pt = os.path.join(VOICES_DIR, name + ".pt")
+    if not os.path.exists(pt):
+        return gr.update(), None, "", f"'{name}' is not in the voices folder.", gr.update(), gr.update()
+    removed = [pt]
+    os.remove(pt)
+    m = voice_meta(name)  # read meta before removing its .json
+    ra = m.get("ref_audio")
+    for ext in (".json",):
+        p = os.path.join(VOICES_DIR, name + ext)
+        if os.path.exists(p):
+            os.remove(p)
+            removed.append(p)
+    if ra:
+        p = os.path.join(VOICES_DIR, ra)
+        if os.path.exists(p):
+            os.remove(p)
+            removed.append(p)
+    log(f"Library: deleted voice '{name}' ({len(removed)} files).")
+    v = list_voices()
+    upd = gr.update(choices=v, value=v[0] if v else None)
+    return upd, None, "", f"Deleted voice '{name}'.", upd, upd
+
+
+def lib_zip_voices():
+    names = list_voices()
+    if not names:
+        return None, "No saved voices to zip."
+    zdir = os.path.join(OUTPUTS_DIR, "library_zips")
+    os.makedirs(zdir, exist_ok=True)
+    stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    zpath = os.path.join(zdir, f"voices_{stamp}.zip")
+    with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
+        for name in names:
+            for ext in (".pt", ".json"):
+                p = os.path.join(VOICES_DIR, name + ext)
+                if os.path.exists(p):
+                    z.write(p, name + ext)
+            m = voice_meta(name)
+            ra = m.get("ref_audio")
+            if ra:
+                p = os.path.join(VOICES_DIR, ra)
+                if os.path.exists(p):
+                    z.write(p, ra)
+    log(f"Library zip: {len(names)} voices -> {os.path.relpath(zpath, ROOT)}")
+    return zpath, f"Zipped {len(names)} voice{'s' if len(names) != 1 else ''} with transcripts and reference audio."
+
+
 def h_load_model(model_id, device, dtype, asr_model, lora, preload_asr):
     model_id = (model_id or "").strip() or DEFAULT_SETTINGS["model"]
     lora = (lora or "").strip()
@@ -872,6 +1052,10 @@ button:disabled { opacity: .55; animation: ovpulse 1.4s ease-in-out infinite; }
 audio { width: 100%; }
 .waveform-container, .component-wrapper { background: transparent !important; }
 
+/* library */
+.lib-h { font-family: var(--ov-mono) !important; color: var(--ov-green) !important; font-weight: 400 !important;
+  font-size: 13px !important; letter-spacing: .14em; text-transform: uppercase; margin: 6px 0 12px !important; }
+
 /* console */
 #ov-console textarea { font-family: var(--ov-mono) !important; font-size: 12px !important;
   color: var(--ov-ash) !important; background: var(--ov-well) !important; line-height: 1.55; }
@@ -1013,6 +1197,9 @@ These apply to every tab. The defaults are good, so change one thing at a time.
 
 ### Batch
 One line becomes one clip. All clips use the same voice and settings and are saved in a dated batch folder, with a zip ready to download. A larger batch size is faster but uses more VRAM.
+
+### Library
+Everything you have made lives here: every clip (including batch runs) and every saved voice. Filter clips by date range or search text, voice name and file name, then play them back with the settings that made them. Zip matching clips, or zip all voices for backup. Deleting a voice removes its model, transcript and reference audio from the voices folder; the other tabs pick up the change right away.
 
 ### Model
 You can point the app at a different checkpoint or a fine-tuned folder, or apply a LoRA adapter folder that holds `adapter_config.json`. The settings are remembered. Unload the model when you need the GPU for something else; anything else holding VRAM slows generation down or makes it fail.
@@ -1224,9 +1411,40 @@ def build():
                     with gr.Column():
                         h_meta = gr.Code(label="Settings used", language="json", lines=22, interactive=False)
 
-            # 06 MODEL ---------------------------------------------------
-            with gr.Tab("06 · Model", elem_id="tab-model"):
-                gr.HTML(eyebrow("06", "Model",
+            # 06 LIBRARY -------------------------------------------------
+            with gr.Tab("06 · Library", elem_id="tab-library"):
+                gr.HTML(eyebrow("06", "Library",
+                                "Everything you have made, in one place: clips and saved voices. Filter, preview, zip."))
+                with gr.Row():
+                    with gr.Column():
+                        gr.HTML('<h3 class="lib-h">Clips</h3>')
+                        with gr.Row():
+                            l_from = gr.Textbox(label="From", lines=1, placeholder="2026-01-01", info="YYYY-MM-DD.")
+                            l_to = gr.Textbox(label="To", lines=1, placeholder="2026-12-31", info="YYYY-MM-DD.")
+                        l_query = gr.Textbox(label="Search", lines=1,
+                                             placeholder="text, voice name or file name")
+                        with gr.Row():
+                            l_ref = gr.Button("Filter", variant="secondary")
+                            l_zc = gr.Button("Zip matching clips", variant="secondary")
+                        l_pick = gr.Dropdown(label="Clip", filterable=True)
+                        l_audio = gr.Audio(label="Playback", type="filepath", interactive=False, elem_classes="ov-out")
+                        l_cmeta = gr.Code(label="Settings used", language="json", lines=14, interactive=False)
+                        l_cmsg = gr.Textbox(label="Status", lines=1, interactive=False, elem_classes="ov-status")
+                        l_czip = gr.File(label="Clips zip", interactive=False)
+                    with gr.Column():
+                        gr.HTML('<h3 class="lib-h">Voices</h3>')
+                        l_voice = gr.Dropdown(label="Saved voice", filterable=True)
+                        l_vprev = gr.Audio(label="Reference preview", type="filepath", interactive=False, elem_classes="ov-out")
+                        l_vtext = gr.Textbox(label="Stored transcript", lines=2, interactive=False)
+                        with gr.Row():
+                            l_zv = gr.Button("Zip all voices", variant="secondary")
+                            l_del = gr.Button("Delete voice", variant="stop")
+                        l_vmsg = gr.Textbox(label="Status", lines=1, interactive=False, elem_classes="ov-status")
+                        l_vzip = gr.File(label="Voices zip", interactive=False)
+
+            # 07 MODEL ---------------------------------------------------
+            with gr.Tab("07 · Model", elem_id="tab-model"):
+                gr.HTML(eyebrow("07", "Model",
                                 "Choose the checkpoint, precision and an optional LoRA adapter. Settings are remembered."))
                 with gr.Row():
                     with gr.Column():
@@ -1307,6 +1525,15 @@ def build():
         h_pick.change(h_history_pick, h_pick, [h_audio, h_meta])
         h_open.click(h_open_outputs, outputs=h_msg)
 
+        # library
+        l_ref.click(lib_refresh, [l_from, l_to, l_query], [l_pick, l_cmsg])
+        l_pick.change(lib_pick, l_pick, [l_audio, l_cmeta])
+        l_zc.click(lib_zip_clips, [l_from, l_to, l_query], [l_czip, l_cmsg]).then(console_text, outputs=console)
+        l_voice.change(lib_voice_pick, l_voice, [l_vprev, l_vtext])
+        l_zv.click(lib_zip_voices, [], [l_vzip, l_vmsg]).then(console_text, outputs=console)
+        l_del.click(lib_delete_voice, l_voice, [l_voice, l_vprev, l_vtext, l_vmsg, c_voice, b_voice]).then(
+            console_text, outputs=console)
+
         chain(m_load, "Load model", h_load_model, [m_id, m_dev, m_dtype, m_asr, m_lora, m_pre_asr],
               [m_status, header])
         m_unload.click(h_unload, outputs=[m_status, header]).then(console_text, outputs=console)
@@ -1323,6 +1550,17 @@ def build():
         timer.tick(lambda: (header_html(), console_text()), outputs=[header, console])
         demo.load(h_voice_info, c_voice, [c_vprev, c_vtext])
         demo.load(h_history_pick, h_pick, [h_audio, h_meta])
+
+        # library initial fill
+        def _lib_init():
+            items = lib_scan_clips()
+            ch = lib_clip_choices(items)
+            vch = lib_voice_choices(lib_scan_voices())
+            return (gr.update(choices=ch, value=ch[0][1] if ch else None),
+                    gr.update(choices=vch, value=vch[0][1] if vch else None))
+        demo.load(_lib_init, outputs=[l_pick, l_voice])
+        demo.load(lib_pick, l_pick, [l_audio, l_cmeta])
+        demo.load(lib_voice_pick, l_voice, [l_vprev, l_vtext])
     return demo
 
 
