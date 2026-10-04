@@ -635,56 +635,87 @@ def lib_scan_clips():
     return items
 
 
-def lib_filter_clips(items, date_from, date_to, query):
+def lib_filter_clips(items, query):
     q = (query or "").strip().lower()
+    if not q:
+        return items
     out = []
     for it in items:
-        d = f"{it['mtime']:%Y-%m-%d}"
-        if date_from and d < date_from.strip():
-            continue
-        if date_to and d > date_to.strip():
-            continue
-        if q:
-            hay = " ".join([it["label"], str(it["meta"].get("text", "")), str(it["meta"].get("voice", ""))]).lower()
-            if q not in hay:
-                continue
-        out.append(it)
+        hay = " ".join([os.path.relpath(it["path"], OUTPUTS_DIR), str(it["meta"].get("text", "")),
+                        str(it["meta"].get("voice", ""))]).lower()
+        if q in hay:
+            out.append(it)
     return out
 
 
-def lib_clip_choices(items):
-    ch = []
-    for it in items[:300]:
+def lib_table_rows(query=""):
+    """The outputs folder as table rows, newest first. Last two cells are the ✎ / 🗑 actions."""
+    rows = []
+    for it in lib_filter_clips(lib_scan_clips(), query)[:500]:
         m = it["meta"]
-        extra = f" · {m['seconds']}s" if m.get("seconds") else ""
-        voice = f" · {m['voice']}" if m.get("voice") else ""
-        ch.append((it["label"] + extra + voice, it["path"]))
-    return ch
+        rel = os.path.relpath(it["path"], OUTPUTS_DIR)
+        voice = str(m.get("voice") or "")
+        secs = m.get("seconds")
+        text = " ".join(str(m.get("text") or "").split())[:60]
+        rows.append([f"{it['mtime']:%Y-%m-%d %H:%M}", rel, voice, f"{secs}s" if secs else "", text, "✎", "🗑"])
+    return rows
 
 
-def lib_refresh(date_from, date_to, query):
-    items = lib_filter_clips(lib_scan_clips(), date_from, date_to, query)
-    ch = lib_clip_choices(items)
-    n = len(items)
-    msg = f"{n} clip{'s' if n != 1 else ''} match." + (" Showing the newest 300." if n > 300 else "")
-    return gr.update(choices=ch, value=ch[0][1] if ch else None), msg
-
-
-def lib_pick(path):
-    if not path or not os.path.exists(path):
-        return None, ""
-    mp = path[:-4] + ".json"
+def lib_table_select(query, evt: "gr.EventData"):
+    """Row click: a data cell previews the clip, ✎ opens rename, 🗑 deletes it."""
+    idx = getattr(evt, "index", None)
+    if not idx or len(idx) != 2:
+        return (gr.update(), gr.update(), "", "", gr.update(), gr.update(), "Pick a row to preview it.")
+    row, col = idx
+    items = lib_filter_clips(lib_scan_clips(), query)
+    if row is None or col is None or row >= len(items):
+        return (gr.update(), gr.update(), "", "", gr.update(), gr.update(), "Pick a row to preview it.")
+    it = items[row]
+    rel = os.path.relpath(it["path"], OUTPUTS_DIR)
+    if col == 5:  # ✎ rename
+        base = os.path.splitext(os.path.basename(it["path"]))[0]
+        return (gr.update(), gr.update(visible=True), base, it["path"], gr.update(), gr.update(),
+                f"Renaming '{rel}' — edit the name and apply.")
+    if col == 6:  # 🗑 delete
+        os.remove(it["path"])
+        mp = it["path"][:-4] + ".json"
+        if os.path.exists(mp):
+            os.remove(mp)
+        log(f"Library: deleted clip '{rel}'.")
+        return (lib_table_rows(query), gr.update(visible=False), "", "", None, "", f"Deleted '{rel}'.")
+    mp = it["path"][:-4] + ".json"
     info = ""
     if os.path.exists(mp):
         with open(mp, encoding="utf-8") as f:
             info = json.dumps(json.load(f), indent=2, ensure_ascii=False)
-    return path, info
+    return (gr.update(), gr.update(visible=False), "", "", it["path"], info, f"Playing '{rel}'.")
 
 
-def lib_zip_clips(date_from, date_to, query):
-    items = lib_filter_clips(lib_scan_clips(), date_from, date_to, query)
+def lib_rename_clip(new_name, old_path):
+    """Outputs: [table, rename row, rename input, rename path, status msg]."""
+    if not old_path or not os.path.exists(old_path):
+        return (gr.update(), gr.update(visible=False), "", "", "Nothing to rename — the file is already gone.")
+    name = os.path.basename((new_name or "").strip().strip("/"))
+    if name.lower().endswith(".wav"):
+        name = name[:-4]
+    if not name:
+        return (gr.update(), gr.update(visible=False), "", "", "Name is empty — nothing renamed.")
+    new_path = os.path.join(os.path.dirname(old_path), name + ".wav")
+    if os.path.exists(new_path):
+        return (gr.update(), gr.update(visible=True), name, old_path,
+                f"A file called '{name}.wav' already exists in that folder.")
+    os.replace(old_path, new_path)
+    mp = old_path[:-4] + ".json"
+    if os.path.exists(mp):
+        os.replace(mp, new_path[:-4] + ".json")
+    log(f"Library: renamed '{os.path.relpath(old_path, OUTPUTS_DIR)}' -> '{os.path.relpath(new_path, OUTPUTS_DIR)}'.")
+    return (lib_table_rows(), gr.update(visible=False), "", "", f"Renamed to '{name}.wav'.")
+
+
+def lib_zip_clips():
+    items = lib_scan_clips()
     if not items:
-        return None, "Nothing to zip: no clips match the filters."
+        return None, "Nothing to zip: the outputs folder has no clips."
     zdir = os.path.join(OUTPUTS_DIR, "library_zips")
     os.makedirs(zdir, exist_ok=True)
     stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -1061,6 +1092,12 @@ audio { width: 100%; }
   font-size: 13px !important; letter-spacing: .14em; text-transform: uppercase; margin: 6px 0 12px !important; }
 .ov-hint { font-family: var(--ov-mono) !important; font-size: 12px !important; color: var(--ov-ash) !important;
   border: 1px solid var(--ov-border) !important; background: var(--ov-well) !important; padding: 8px 10px !important; }
+#lib-table .svelte-select, #lib-table .gradio-container { font-family: var(--ov-mono) !important; }
+#lib-table [data-testid^="cell-"] { font-size: 12.5px !important; color: var(--ov-text) !important; }
+#lib-table [data-testid^="cell-"]:hover { background: rgba(91, 227, 90, .06) !important; }
+#lib-table button { font-family: var(--ov-mono) !important; color: var(--ov-green) !important; background: transparent !important;
+  border: none !important; cursor: pointer !important; }
+#lib-table button:hover { color: #8dff8b !important; background: transparent !important; }
 
 /* console */
 #ov-console textarea { font-family: var(--ov-mono) !important; font-size: 12px !important;
@@ -1205,7 +1242,7 @@ These apply to every tab. The defaults are good, so change one thing at a time.
 One line becomes one clip. All clips use the same voice and settings and are saved in a dated batch folder, with a zip ready to download. A larger batch size is faster but uses more VRAM.
 
 ### Library
-Everything you have made lives here: every clip (including batch runs) and every saved voice. Filter clips by date range or search text, voice name and file name, then play them back with the settings that made them. Zip matching clips, or zip all voices for backup. Deleting a voice removes its model, transcript and reference audio from the voices folder; the other tabs pick up the change right away.
+Your outputs folder, live. Every clip (including batch runs) shows up in the table: click a row to play it with the settings that made it, ✎ renames the file (its settings file moves along), 🗑 deletes just that one. Search filters by file name, text or voice; zip all clips for backup. Saved voices sit on the right — preview, zip, delete (a deleted voice disappears from every tab at once).
 
 ### Model
 You can point the app at a different checkpoint or a fine-tuned folder, or apply a LoRA adapter folder that holds `adapter_config.json`. The settings are remembered. Unload the model when you need the GPU for something else; anything else holding VRAM slows generation down or makes it fail.
@@ -1426,24 +1463,28 @@ def build():
             # 06 LIBRARY -------------------------------------------------
             with gr.Tab("06 · Library", elem_id="tab-library"):
                 gr.HTML(eyebrow("06", "Library",
-                                "Everything you have made, in one place: clips and saved voices. Filter, preview, zip."))
+                                "Your outputs folder, live: every clip in a table. Click a row to play it, ✎ renames it, 🗑 deletes it."))
                 with gr.Row():
-                    with gr.Column():
+                    with gr.Column(scale=3):
                         gr.HTML('<h3 class="lib-h">Clips</h3>')
                         with gr.Row():
-                            l_from = gr.Textbox(label="From", lines=1, placeholder="2026-01-01", info="YYYY-MM-DD.")
-                            l_to = gr.Textbox(label="To", lines=1, placeholder="2026-12-31", info="YYYY-MM-DD.")
-                        l_query = gr.Textbox(label="Search", lines=1,
-                                             placeholder="text, voice name or file name")
-                        with gr.Row():
-                            l_ref = gr.Button("Filter", variant="secondary")
-                            l_zc = gr.Button("Zip matching clips", variant="secondary")
-                        l_pick = gr.Dropdown(label="Clip", filterable=True)
+                            l_query = gr.Textbox(label="Search", lines=1, scale=4,
+                                                 placeholder="file name, text or voice")
+                            l_ref = gr.Button("Refresh", variant="secondary", scale=1)
+                            l_zc = gr.Button("Zip all clips", variant="secondary", scale=1)
+                        l_table = gr.Dataframe(
+                            headers=["Date", "File", "Voice", "Length", "Text", "Edit", "Delete"],
+                            datatype=["markdown", "markdown", "markdown", "markdown", "markdown", "button", "button"],
+                            label="outputs/", interactive=True, max_height=420, elem_id="lib-table")
+                        with gr.Row(visible=False) as l_rrow:
+                            l_rname = gr.Textbox(label="New name", lines=1, scale=5, placeholder="file name without .wav")
+                            l_rapply = gr.Button("Apply rename", variant="primary", scale=1)
+                        l_rpath = gr.Textbox(visible=False)  # holds the path being renamed
                         l_audio = gr.Audio(label="Playback", type="filepath", interactive=False, elem_classes="ov-out")
-                        l_cmeta = gr.Code(label="Settings used", language="json", lines=14, interactive=False)
+                        l_cmeta = gr.Code(label="Settings used", language="json", lines=12, interactive=False)
                         l_cmsg = gr.Textbox(label="Status", lines=1, interactive=False, elem_classes="ov-status")
                         l_czip = gr.File(label="Clips zip", interactive=False)
-                    with gr.Column():
+                    with gr.Column(scale=2):
                         gr.HTML('<h3 class="lib-h">Voices</h3>')
                         l_voice = gr.Dropdown(label="Saved voice", filterable=True)
                         l_vprev = gr.Audio(label="Reference preview", type="filepath", interactive=False, elem_classes="ov-out")
@@ -1538,9 +1579,13 @@ def build():
         h_open.click(h_open_outputs, outputs=h_msg)
 
         # library
-        l_ref.click(lib_refresh, [l_from, l_to, l_query], [l_pick, l_cmsg])
-        l_pick.change(lib_pick, l_pick, [l_audio, l_cmeta])
-        l_zc.click(lib_zip_clips, [l_from, l_to, l_query], [l_czip, l_cmsg]).then(console_text, outputs=console)
+        l_ref.click(lambda q: (lib_table_rows(q), "Showing the outputs folder."), [l_query], [l_table, l_cmsg])
+        l_query.change(lambda q: lib_table_rows(q), l_query, l_table)
+        l_table.select(lib_table_select, [l_query],
+                       [l_table, l_rrow, l_rname, l_rpath, l_audio, l_cmeta, l_cmsg])
+        l_rapply.click(lib_rename_clip, [l_rname, l_rpath], [l_table, l_rrow, l_rname, l_rpath, l_cmsg]).then(
+            console_text, outputs=console)
+        l_zc.click(lib_zip_clips, [], [l_czip, l_cmsg]).then(console_text, outputs=console)
         l_voice.change(lib_voice_pick, l_voice, [l_vprev, l_vtext])
         l_zv.click(lib_zip_voices, [], [l_vzip, l_vmsg]).then(console_text, outputs=console)
         l_del.click(lib_delete_voice, l_voice, [l_voice, l_vprev, l_vtext, l_vmsg, c_voice, b_voice,
@@ -1566,13 +1611,9 @@ def build():
 
         # library initial fill
         def _lib_init():
-            items = lib_scan_clips()
-            ch = lib_clip_choices(items)
             vch = lib_voice_choices(lib_scan_voices())
-            return (gr.update(choices=ch, value=ch[0][1] if ch else None),
-                    gr.update(choices=vch, value=vch[0][1] if vch else None))
-        demo.load(_lib_init, outputs=[l_pick, l_voice])
-        demo.load(lib_pick, l_pick, [l_audio, l_cmeta])
+            return (lib_table_rows(), gr.update(choices=vch, value=vch[0][1] if vch else None))
+        demo.load(_lib_init, outputs=[l_table, l_voice])
         demo.load(lib_voice_pick, l_voice, [l_vprev, l_vtext])
     return demo
 
