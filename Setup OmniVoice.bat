@@ -5,7 +5,7 @@ rem  OmniVoice control panel - setup for a fresh install
 rem
 rem  Double-click this file. It installs everything into this folder:
 rem    uv (Python manager, if missing)  ->  OmniVoice source  ->  Python 3.12 env
-rem    ->  PyTorch (CUDA 12.8 or CPU)  ->  OmniVoice + Gradio  ->  model download
+rem    ->  PyTorch (CUDA 12.8 or CPU)  ->  OmniVoice + Gradio  ->  model + Whisper download
 rem  Safe to run again: it repairs and updates, and never deletes your outputs,
 rem  voices or settings.
 rem
@@ -145,9 +145,9 @@ if not exist "settings.json" (
 )
 
 rem ---------------------------------------------------------------- 7. model
-call :step "7/7" "Model weights (about 3.3 GB)"
+call :step "7/7" "Model weights (about 3.3 GB, plus 1.6 GB Whisper for auto-transcripts)"
 if "%NOMODEL%"=="1" (
-  echo     Skipped. The model downloads the first time you generate.
+  echo     Skipped. The model and Whisper download the first time you need them.
   goto :done
 )
 if "%AUTO%"=="0" (
@@ -162,6 +162,17 @@ set HF_HUB_DISABLE_SYMLINKS_WARNING=1
 if errorlevel 1 (
   echo     The model download did not finish. It will retry the first time you generate.
   call :log "model download failed"
+)
+rem Whisper is only used for auto-transcribing reference clips; fetching it now
+rem keeps the first clone run from stalling on a surprise 1.6 GB download.
+if "%AUTO%"=="0" (
+  choice /c YN /n /m "    Also download Whisper for auto-transcripts? [Y/N] "
+  if errorlevel 2 goto :done
+)
+"!PY!" -c "from huggingface_hub import snapshot_download as d; p=d('openai/whisper-large-v3-turbo'); print('    Whisper ready in', p)"
+if errorlevel 1 (
+  echo     Whisper did not finish. It will download the first time you transcribe.
+  call :log "whisper download failed"
 )
 
 :done
