@@ -1069,7 +1069,7 @@ def text_box(placeholder):
 
 
 def lang_dd():
-    return gr.Dropdown(LANGUAGES, value="Auto", label="Language", info="Auto works. Naming it helps a little.",
+    return gr.Dropdown(LANGUAGES, value="Auto", label="Text language", info="Language of the text you type. Auto works; naming it helps a little.",
                        filterable=True)
 
 
