@@ -487,7 +487,8 @@ def h_voice_info(name):
 
 def h_refresh_voices(current=None):
     v = list_voices()
-    return gr.update(choices=v, value=current if current in v else (v[0] if v else None))
+    upd = gr.update(choices=v, value=current if current in v else (v[0] if v else None), interactive=bool(v))
+    return upd, gr.update(visible=not v)
 
 
 def h_batch(lines, lang, source, voice, free, *rest):
@@ -735,12 +736,14 @@ def lib_voice_pick(name):
 
 
 def lib_delete_voice(name):
-    """Outputs: [voice dropdown, preview audio, stored transcript, status msg, clone tab voice, batch tab voice]."""
+    """Outputs: [voice dropdown, preview audio, stored transcript, status msg, clone tab voice, batch tab voice, clone hint, batch hint]."""
     if not name:
-        return gr.update(), None, "", "Pick a voice to delete.", gr.update(), gr.update()
+        return (gr.update(), None, "", "Pick a voice to delete.", gr.update(), gr.update(),
+                gr.update(visible=True), gr.update(visible=True))
     pt = os.path.join(VOICES_DIR, name + ".pt")
     if not os.path.exists(pt):
-        return gr.update(), None, "", f"'{name}' is not in the voices folder.", gr.update(), gr.update()
+        return (gr.update(), None, "", f"'{name}' is not in the voices folder.", gr.update(), gr.update(),
+                gr.update(), gr.update())
     removed = [pt]
     os.remove(pt)
     m = voice_meta(name)  # read meta before removing its .json
@@ -757,8 +760,9 @@ def lib_delete_voice(name):
             removed.append(p)
     log(f"Library: deleted voice '{name}' ({len(removed)} files).")
     v = list_voices()
-    upd = gr.update(choices=v, value=v[0] if v else None)
-    return upd, None, "", f"Deleted voice '{name}'.", upd, upd
+    upd = gr.update(choices=v, value=v[0] if v else None, interactive=bool(v))
+    hint_vis = gr.update(visible=not v)
+    return upd, None, "", f"Deleted voice '{name}'.", upd, upd, hint_vis, hint_vis
 
 
 def lib_zip_voices():
@@ -1055,6 +1059,8 @@ audio { width: 100%; }
 /* library */
 .lib-h { font-family: var(--ov-mono) !important; color: var(--ov-green) !important; font-weight: 400 !important;
   font-size: 13px !important; letter-spacing: .14em; text-transform: uppercase; margin: 6px 0 12px !important; }
+.ov-hint { font-family: var(--ov-mono) !important; font-size: 12px !important; color: var(--ov-ash) !important;
+  border: 1px solid var(--ov-border) !important; background: var(--ov-well) !important; padding: 8px 10px !important; }
 
 /* console */
 #ov-console textarea { font-family: var(--ov-mono) !important; font-size: 12px !important;
@@ -1313,8 +1319,11 @@ def build():
                         with gr.Column(visible=False) as c_old:
                             with gr.Row():
                                 c_voice = gr.Dropdown(voices, value=voices[0] if voices else None,
-                                                      label="Saved voice")
+                                                      label="Saved voice", interactive=bool(voices))
                                 c_vref = gr.Button("Refresh", variant="secondary", size="sm")
+                            c_vhint = gr.HTML('<div class="ov-hint">No saved voices yet. Pick "New reference clip", '
+                                              'generate once, and name it under "Save as voice".</div>',
+                                              visible=not voices)
                             c_vprev = gr.Audio(label="Reference preview", type="filepath", interactive=False)
                             c_vtext = gr.Textbox(label="Stored transcript", interactive=False, lines=2)
                     with gr.Column():
@@ -1377,7 +1386,10 @@ def build():
                         b_src = gr.Radio(["Saved voice", "Designed voice", "Auto voice"], value="Auto voice",
                                          label="Voice")
                         with gr.Column(visible=False) as b_saved_box:
-                            b_voice = gr.Dropdown(voices, value=voices[0] if voices else None, label="Saved voice")
+                            b_voice = gr.Dropdown(voices, value=voices[0] if voices else None, label="Saved voice",
+                                                  interactive=bool(voices))
+                            b_vhint = gr.HTML('<div class="ov-hint">No saved voices yet. Save one on the Clone tab '
+                                              'first, or use a designed / auto voice here.</div>', visible=not voices)
                             b_vref = gr.Button("Refresh voice list", variant="secondary")
                         b_picks = []
                         with gr.Column(visible=False) as b_design_box:
@@ -1501,21 +1513,21 @@ def build():
         c_src.change(lambda v: (gr.update(visible=v != "Saved voice"), gr.update(visible=v == "Saved voice")),
                      c_src, [c_new, c_old])
         c_voice.change(h_voice_info, c_voice, [c_vprev, c_vtext])
-        c_vref.click(h_refresh_voices, c_voice, c_voice)
+        c_vref.click(h_refresh_voices, c_voice, [c_voice, c_vhint])
         c_trans.click(h_transcribe, c_ref, [c_reftext, c_status]).then(console_text, outputs=console)
         for txt, tg in ((c_text, c_tag), (d_text, d_tag), (a_text, a_tag)):
             tg.input(append_tag, [txt, tg], [txt, tg])
         chain(c_btn, "Generate", h_clone,
               [c_text, c_lang, c_src, c_voice, c_ref, c_reftext, c_save, c_instr] + settings,
-              [c_out, c_status]).then(h_refresh_voices, c_voice, c_voice).then(
-                  h_refresh_voices, b_voice, b_voice)
+              [c_out, c_status]).then(h_refresh_voices, c_voice, [c_voice, c_vhint]).then(
+                  h_refresh_voices, b_voice, [b_voice, b_vhint])
 
         for comp in d_picks + [d_free]:
             comp.change(design_instruct, [d_free] + d_picks, d_preview)
         chain(d_btn, "Generate", h_design, [d_text, d_lang, d_free] + d_picks + settings, [d_out, d_status])
         chain(a_btn, "Generate", h_auto, [a_text, a_lang] + settings, [a_out, a_status])
 
-        b_vref.click(h_refresh_voices, b_voice, b_voice)
+        b_vref.click(h_refresh_voices, b_voice, [b_voice, b_vhint])
         b_src.change(lambda v: (gr.update(visible=v == "Saved voice"), gr.update(visible=v == "Designed voice"),
                                 gr.update(visible=v == "Auto voice")), b_src, [b_saved_box, b_design_box, b_auto_note])
         chain(b_btn, "Generate batch", h_batch,
@@ -1531,7 +1543,8 @@ def build():
         l_zc.click(lib_zip_clips, [l_from, l_to, l_query], [l_czip, l_cmsg]).then(console_text, outputs=console)
         l_voice.change(lib_voice_pick, l_voice, [l_vprev, l_vtext])
         l_zv.click(lib_zip_voices, [], [l_vzip, l_vmsg]).then(console_text, outputs=console)
-        l_del.click(lib_delete_voice, l_voice, [l_voice, l_vprev, l_vtext, l_vmsg, c_voice, b_voice]).then(
+        l_del.click(lib_delete_voice, l_voice, [l_voice, l_vprev, l_vtext, l_vmsg, c_voice, b_voice,
+                                                c_vhint, b_vhint]).then(
             console_text, outputs=console)
 
         chain(m_load, "Load model", h_load_model, [m_id, m_dev, m_dtype, m_asr, m_lora, m_pre_asr],
