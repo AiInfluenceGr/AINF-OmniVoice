@@ -22,6 +22,8 @@ The upstream demo works, but it's a bare test page. I wanted something I'd actua
 
 The generation settings live under the tabs and apply everywhere: steps, guidance, speed, exact duration, seed, temperatures, chunking for long text, and number spelling. A reset button puts them back to the upstream defaults.
 
+On first launch a built-in demo voice, **Aria**, is added to `voices/` so you can hear OmniVoice in action before you save a single clip — pick it on any tab and generate. Delete it from the Library whenever you like; it won't come back.
+
 ![History tab](docs/history.png)
 
 ## Install

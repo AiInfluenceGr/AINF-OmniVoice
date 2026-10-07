@@ -249,6 +249,27 @@ def slug(text, n=32):
     return (s[:n].strip("-")) or "clip"
 
 
+DEFAULT_VOICE_NAME = "Aria"
+DEFAULT_VOICE_SRC = os.path.join(ROOT, "assets", "default_voice")
+
+
+def seed_default_voice():
+    """First launch: copy the built-in demo voice into voices/ so users can
+    hear OmniVoice in action before they save a single clip. Skipped when the
+    voice is already there (including if the user deleted it on purpose)."""
+    src_pt = os.path.join(DEFAULT_VOICE_SRC, DEFAULT_VOICE_NAME + ".pt")
+    dst_pt = os.path.join(VOICES_DIR, DEFAULT_VOICE_NAME + ".pt")
+    if not os.path.exists(src_pt) or os.path.exists(dst_pt):
+        return None
+    for f in (DEFAULT_VOICE_NAME + ".pt", DEFAULT_VOICE_NAME + ".json",
+              DEFAULT_VOICE_NAME + ".wav"):
+        src = os.path.join(DEFAULT_VOICE_SRC, f)
+        if os.path.exists(src) and not os.path.exists(os.path.join(VOICES_DIR, f)):
+            shutil.copyfile(src, os.path.join(VOICES_DIR, f))
+    log(f"First launch: added built-in demo voice '{DEFAULT_VOICE_NAME}'.")
+    return DEFAULT_VOICE_NAME
+
+
 def build_config(steps, guidance, t_shift, pos_temp, cls_temp, layer_pen, denoise,
                  pre, post, chunk_dur, chunk_thr, pad, fade):
     from omnivoice import OmniVoiceGenerationConfig
@@ -1212,6 +1233,8 @@ GUIDE = """
 ### Start here
 The model loads the first time you generate, which takes a minute and downloads about 3.3 GB on the very first run. If you'd rather load it up front, go to the MODEL tab and press Load model. Everything you make is saved as a WAV file, with a small JSON file next to it that records the settings, so you can always find out how a clip was made.
 
+A built-in demo voice, **Aria**, comes preloaded in `voices/` on first launch so you can hear OmniVoice in action before you save anything — pick it as a saved voice on any tab and generate. Delete it from the Library whenever you like; it won't come back.
+
 ### Cloning a voice
 Give it a clean clip of 3 to 10 seconds with one person talking and no music behind them. Longer clips don't help: they slow generation down and can make the result worse. If you type the exact words spoken in the clip into the transcript box, cloning is more accurate. Leave it empty and Whisper will write it for you, or press Transcribe to fill it in and correct it yourself.
 
@@ -1327,6 +1350,7 @@ def free(label):
 
 
 def build():
+    seed_default_voice()
     voices = list_voices()
     s = load_settings()
     with gr.Blocks(title="OmniVoice · AIINFLUENCE") as demo:
