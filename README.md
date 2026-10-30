@@ -19,10 +19,11 @@ The upstream demo works, but it's a bare test page. I wanted something I'd actua
 | 05 · History | Every clip you've made, newest first, with the full settings and seed next to it. |
 | 06 · Library | Your outputs folder, live: every clip in a table — click a row to play it, ✎ renames it, 🗑 deletes just that one. Search, zip all clips, and manage saved voices (preview, zip, delete). |
 | 07 · Model | Checkpoint, precision, LoRA adapter, Whisper model. Load and unload from here. |
+| 08 · Skins | Two looks for the same app: **AINF** (the dark green default) and **MTRX SUPPLY** (achromatic concrete and ink, no color at all). Click a card and the whole interface repaints; the choice is saved in this browser. |
 
 The generation settings live under the tabs and apply everywhere: steps, guidance, speed, exact duration, seed, temperatures, chunking for long text, and number spelling. A reset button puts them back to the upstream defaults.
 
-On first launch a built-in demo voice, **Aria**, is added to `voices/` so you can hear OmniVoice in action before you save a single clip — pick it on any tab and generate. Delete it from the Library whenever you like; it won't come back.
+There is a built-in demo voice, **Aria**, so you can hear OmniVoice in action before you save a single clip: when `assets/default_voice/` holds the `Aria` files they are copied into `voices/` on first launch. If they are not there yet, build them once with `python tools/make_default_voice.py` (it speaks a sample line and needs the model loaded). Delete Aria from the Library whenever you like; it won't come back.
 
 ![History tab](docs/history.png)
 

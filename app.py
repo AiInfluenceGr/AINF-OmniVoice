@@ -952,7 +952,8 @@ def font_faces():
 C = dict(body="#060906", panel="#0d120e", raised="#131a14", well="#030503", border="#233026",
          text="#c9d6c6", bone="#e6efe1", ash="#a3aea4", steel="#7f8c81", fog="#5d6a60",
          green="#5be35a", green_hi="#8dff8c", teal="#103a18", teal_hi="#17501f",
-         warn="#e3b341", fault="#c4566b")
+         warn="#e3b341", fault="#c4566b", btn_text="#041204", accent_line="#2f5a35",
+         check_border="#4f7754", fault_border="#5a2a33", steel_strong="#1e4a22", tag_warn_line="#4a3d1e")
 
 _CSS_TEMPLATE = """
 :root, .dark {
@@ -960,6 +961,11 @@ _CSS_TEMPLATE = """
   --ov-border:%(border)s; --ov-text:%(text)s; --ov-bone:%(bone)s; --ov-ash:%(ash)s;
   --ov-steel:%(steel)s; --ov-fog:%(fog)s; --ov-green:%(green)s; --ov-green-hi:%(green_hi)s;
   --ov-teal:%(teal)s; --ov-teal-hi:%(teal_hi)s; --ov-warn:%(warn)s; --ov-fault:%(fault)s;
+  --ov-btn-text:%(btn_text)s; --ov-accent-line:%(accent_line)s; --ov-check-border:%(check_border)s;
+  --ov-fault-border:%(fault_border)s; --ov-steel-strong:%(steel_strong)s; --ov-tag-warn-line:%(tag_warn_line)s;
+  --ov-wash:rgb(13 18 14 / 0.92); --ov-wash-tab:rgb(13 18 14 / 0.94); --ov-wash-head:rgb(6 9 6 / 0.94);
+  --ov-foot-wash:rgb(6 9 6 / 0.92); --ov-cell-hover:rgba(91, 227, 90, .06);
+  --ov-shade:rgb(3 5 3 / .9);
   --ov-mono:'JetBrains Mono', ui-monospace, Consolas, monospace;
   --ov-sans:'Inter Tight', system-ui, sans-serif;
 }
@@ -982,7 +988,7 @@ gradio-app { position: relative; z-index: 1; }
   border-radius: 2px; margin-left: 10px; }
 .ov-fx::before { content: "["; color: var(--ov-fog); margin-right: 4px; }
 .ov-fx::after { content: "]"; color: var(--ov-fog); margin-left: 4px; }
-.ov-fx.is-on { color: var(--ov-green); border-color: #1e4a22; }
+.ov-fx.is-on { color: var(--ov-green); border-color: var(--ov-steel-strong); }
 .ov-fx:hover { color: var(--ov-bone); }
 .gradio-container {
   width: min(1480px, 96vw) !important; max-width: none !important; flex-grow: 0 !important;
@@ -999,7 +1005,7 @@ footer { display: none !important; }
 
 /* header */
 .ov-head { padding: 34px 0 22px; border-bottom: 1px solid var(--ov-border); margin-bottom: 4px; }
-.ov-title, .ov-lede { text-shadow: 0 1px 12px rgb(3 5 3 / .9); }
+.ov-title, .ov-lede { text-shadow: 0 1px 12px var(--ov-shade); }
 .ov-brand { display:flex; align-items:center; gap:12px; font-family:var(--ov-mono); font-size:12px;
   letter-spacing:.16em; color:var(--ov-steel); }
 .ov-mark { color: var(--ov-green); }
@@ -1012,8 +1018,8 @@ footer { display: none !important; }
   border:1px solid var(--ov-border); background:var(--ov-panel); padding:4px 8px; border-radius:2px; }
 .tag::before { content:"["; color:var(--ov-fog); margin-right:4px; }
 .tag::after { content:"]"; color:var(--ov-fog); margin-left:4px; }
-.tag-on { color: var(--ov-green); border-color: #1e4a22; }
-.tag-warn { color: var(--ov-warn); border-color: #4a3d1e; }
+.tag-on { color: var(--ov-green); border-color: var(--ov-steel-strong); }
+.tag-warn { color: var(--ov-warn); border-color: var(--ov-tag-warn-line); }
 
 /* eyebrows */
 .eyebrow { display:flex; align-items:center; gap:12px; font-family:var(--ov-mono); font-size:12px;
@@ -1032,11 +1038,11 @@ footer { display: none !important; }
 [role=tab].selected { color: var(--ov-green) !important; border-bottom: 1px solid var(--ov-green) !important; }
 [role=tab].selected::after { background: transparent !important; height: 0 !important; }
 .tabitem { border: 1px solid var(--ov-border) !important; border-top: none !important;
-  background: rgb(13 18 14 / 0.94) !important; padding: 22px 24px !important; min-height: 1120px; }
+  background: var(--ov-wash-tab) !important; padding: 22px 24px !important; min-height: 1120px; }
 #tab-guide .ov-guide { max-height: 960px; overflow-y: auto; padding-right: 14px; }
 .tabitem .row, .tabitem .column, .tabitem .form { background: transparent !important; border: none !important; }
 .gr-group, .gr-group > .styler, .styler { background: transparent !important; gap: 12px !important; border: none !important; }
-.tab-wrapper { border-bottom: none !important; background: rgb(6 9 6 / 0.94) !important; }
+.tab-wrapper { border-bottom: none !important; background: var(--ov-wash-head) !important; }
 
 /* blocks */
 .block, .form { background: transparent !important; border-color: var(--ov-border) !important; }
@@ -1062,15 +1068,15 @@ textarea, input[type=text], input[type=number], select, .wrap:has(> .wrap-inner)
   background: var(--ov-well) !important; color: var(--ov-text) !important;
   border: 1px solid var(--ov-border) !important; border-radius: 2px !important;
   font-family: var(--ov-sans) !important; }
-textarea:focus, input:focus { border-color: #2f5a35 !important; outline: none !important; }
-textarea::placeholder, input::placeholder { color: #6f7d72 !important; opacity: 1; }
+textarea:focus, input:focus { border-color: var(--ov-accent-line) !important; outline: none !important; }
+textarea::placeholder, input::placeholder { color: var(--ov-fog) !important; opacity: 1; }
 input[type=number] { width: 100% !important; text-align: left; -moz-appearance: textfield; }
 .head input[type=number] { min-width: 76px !important; width: auto !important; text-align: center !important; }
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none; margin: 0; }
 input[type=range] { accent-color: var(--ov-green) !important; }
 input[type=checkbox] { appearance: none !important; -webkit-appearance: none !important;
-  width: 17px !important; height: 17px !important; border: 1px solid #4f7754 !important;
+  width: 17px !important; height: 17px !important; border: 1px solid var(--ov-check-border) !important;
   background: var(--ov-well) !important; border-radius: 2px !important; position: relative; cursor: pointer; }
 input[type=checkbox]:checked { background: var(--ov-green) !important; border-color: var(--ov-green) !important; }
 input[type=checkbox]:checked::after { content:""; position:absolute; left:5px; top:1px; width:4px; height:9px;
@@ -1084,21 +1090,21 @@ ul.options li.selected, ul.options li:hover, ul.options li.active { background: 
 /* buttons */
 button { font-family: var(--ov-mono) !important; letter-spacing: .08em; text-transform: uppercase;
   border-radius: 2px !important; font-size: 12.5px !important; font-weight: 400 !important; }
-button.primary, .primary { background: var(--ov-green) !important; color: #041204 !important;
+button.primary, .primary { background: var(--ov-green) !important; color: var(--ov-btn-text) !important;
   border: 1px solid var(--ov-green) !important; font-weight: 500 !important; }
 .ov-settings .ov-checks { gap: 14px !important; padding-top: 6px; }
 button.primary:hover { background: var(--ov-green-hi) !important; }
 button.secondary, button.sm { background: var(--ov-raised) !important; color: var(--ov-text) !important;
   border: 1px solid var(--ov-border) !important; }
-button.secondary:hover { border-color: #2f5a35 !important; color: var(--ov-bone) !important; }
+button.secondary:hover { border-color: var(--ov-accent-line) !important; color: var(--ov-bone) !important; }
 button.stop { background: transparent !important; color: var(--ov-fault) !important;
-  border: 1px solid #5a2a33 !important; }
+  border: 1px solid var(--ov-fault-border) !important; }
 .tabitem button.lg, .runbar button { width: 100% !important; }
 button:disabled { opacity: .55; animation: ovpulse 1.4s ease-in-out infinite; }
 @keyframes ovpulse { 0%,100% { opacity: .45 } 50% { opacity: .8 } }
 
 /* accordion */
-.ov-settings { border: 1px solid var(--ov-border) !important; background: rgb(13 18 14 / 0.92) !important;
+.ov-settings { border: 1px solid var(--ov-border) !important; background: var(--ov-wash) !important;
   margin-top: 14px !important; }
 .ov-settings > button, .label-wrap { font-family: var(--ov-mono) !important; color: var(--ov-steel) !important;
   letter-spacing: .1em; text-transform: uppercase; font-size: 12px !important; }
@@ -1115,10 +1121,10 @@ audio { width: 100%; }
   border: 1px solid var(--ov-border) !important; background: var(--ov-well) !important; padding: 8px 10px !important; }
 #lib-table .svelte-select, #lib-table .gradio-container { font-family: var(--ov-mono) !important; }
 #lib-table [data-testid^="cell-"] { font-size: 12.5px !important; color: var(--ov-text) !important; }
-#lib-table [data-testid^="cell-"]:hover { background: rgba(91, 227, 90, .06) !important; }
+#lib-table [data-testid^="cell-"]:hover { background: var(--ov-cell-hover) !important; }
 #lib-table button { font-family: var(--ov-mono) !important; color: var(--ov-green) !important; background: transparent !important;
   border: none !important; cursor: pointer !important; }
-#lib-table button:hover { color: #8dff8b !important; background: transparent !important; }
+#lib-table button:hover { color: var(--ov-green-hi) !important; background: transparent !important; }
 
 /* console */
 #ov-console textarea { font-family: var(--ov-mono) !important; font-size: 12px !important;
@@ -1137,9 +1143,9 @@ audio { width: 100%; }
 .prose, .md { color: var(--ov-text) !important; }
 .ov-foot { font-family: var(--ov-mono); font-size: 11.5px; color: var(--ov-steel); letter-spacing: .06em;
   padding: 12px 16px; border: 1px solid var(--ov-border); margin: 14px 0 28px; display: flex;
-  align-items: center; justify-content: space-between; background: rgb(6 9 6 / 0.92); }
+  align-items: center; justify-content: space-between; background: var(--ov-foot-wash); }
 /* one solid dock for run bar + console so no board strips show between them */
-.ov-dock { background: rgb(13 18 14 / 0.92) !important; border: 1px solid var(--ov-border) !important;
+.ov-dock { background: var(--ov-wash) !important; border: 1px solid var(--ov-border) !important;
   padding: 14px 16px !important; margin-top: 14px !important; gap: 12px !important; }
 .ov-dock .row, .ov-dock .block, .ov-dock .form { background: transparent !important; border: none !important; }
 .ov-dock .row { gap: 12px !important; }
@@ -1152,11 +1158,195 @@ audio { width: 100%; }
 """
 
 
+# Achromatic "MTRX SUPPLY" skin. Every rule scoped to html[data-skin="mtrx"]:
+# higher specificity than the base rules above, and it re-declares the --ov-*
+# vars + gradio's own baked theme vars, so a runtime skin flip repaints the
+# whole app. Cold concrete, ink CTAs, ghost buttons, 0px radius, no chroma.
+_SKIN_CSS = """
+/* The achromatic vars must reach EVERY element: gradio re-declares --ov-* on
+   body.dark and its baked theme vars on .gradio-container-<ver>, and base rules
+   use high-specificity scoped selectors — so vars win where they are DEFINED.
+   `html[data-skin] *` (specificity 0,1,1) beats every bare `.dark`/container
+   definition (0,1,0), and since base rules read var(--ov-*), achromatic values
+   propagate no matter which rule wins. */
+html[data-skin="mtrx"], html[data-skin="mtrx"] *,
+html[data-skin="mtrx"] .dark, html[data-skin="mtrx"] [class*="gradio-container"] {
+  --ov-body:#e9e9e7; --ov-panel:#ffffff; --ov-raised:#ffffff; --ov-well:#ffffff;
+  --ov-border:#dadad8; --ov-text:#0b0b0b; --ov-bone:#000000; --ov-ash:#6a6a68;
+  --ov-steel:#6a6a68; --ov-fog:#8a8a88; --ov-green:#0b0b0b; --ov-green-hi:#333333;
+  --ov-teal:#ececea; --ov-teal-hi:#e3e3e1; --ov-warn:#333333; --ov-fault:#0b0b0b;
+  --ov-btn-text:#ffffff; --ov-accent-line:#0b0b0b; --ov-check-border:#b9b9b6;
+  --ov-fault-border:#333333; --ov-steel-strong:#0b0b0b; --ov-tag-warn-line:#b9b9b6;
+  --ov-wash:#ffffff; --ov-wash-tab:#ffffff; --ov-wash-head:#e9e9e7; --ov-foot-wash:#000000;
+  --ov-cell-hover:#ececea; --ov-shade:rgba(0,0,0,0);
+  --ov-sans:'Helvetica Neue', Arial, system-ui, sans-serif;
+  /* gradio's own baked (launch-time) theme vars — retarget them achromatic too */
+  --body-background-fill:#e9e9e7; --background-fill-primary:#ffffff; --background-fill-secondary:#ffffff;
+  --block-background-fill:#ffffff; --block-border-color:#dadad8; --block-label-text-color:#5a5a58;
+  --block-title-text-color:#5a5a58; --border-color-primary:#dadad8; --border-color-accent:#0b0b0b;
+  --input-background-fill:#ffffff; --input-border-color:#b9b9b6; --input-placeholder-color:#8a8a88;
+  --button-primary-background-fill:#0b0b0b; --button-primary-text-color:#ffffff;
+  --button-primary-border-color:#0b0b0b; --button-primary-background-fill-hover:#000000;
+  --button-secondary-background-fill:#ffffff; --button-secondary-text-color:#0b0b0b;
+  --button-secondary-border-color:#0b0b0b; --button-secondary-background-fill-hover:#ececea;
+  --color-accent:#0b0b0b; --color-accent-soft:#ececea; --link-text-color:#0b0b0b;
+  --slider-color:#0b0b0b; --checkbox-background-color-selected:#0b0b0b;
+  --body-text-color:#0b0b0b; --body-text-color-subdued:#8a8a88;
+  --body-text-color-secondary:#8a8a88; --body-text-color-link:#0b0b0b;
+  --body-text-color-hover:#000000; --body-text-color-focus:#0b0b0b;
+  --border-color-input:#b9b9b6; --border-color-accent:#0b0b0b;
+  /* gradio's baked primary hue scale (it was built from green) → neutral grays/ink */
+  --primary-50:#f5f5f4; --primary-100:#eaeae8; --primary-200:#dcdcd9; --primary-300:#c3c3c0;
+  --primary-400:#9a9a98; --primary-500:#0b0b0b; --primary-600:#0b0b0b; --primary-700:#0b0b0b;
+  --primary-800:#0b0b0b; --primary-900:#0b0b0b; --primary-950:#000000;
+  --green-500:#0b0b0b; --green-600:#0b0b0b; --green-700:#0b0b0b;
+  --table-even-background-fill:#ffffff; --table-odd-background-fill:#ffffff; --code-background-fill:#ffffff;
+  --panel-background-fill:#ffffff; --panel-border-color:#e3e3e1;
+}
+html[data-skin="mtrx"] { background:#e9e9e7 !important; }
+html[data-skin="mtrx"] .board-bg, html[data-skin="mtrx"] .ov-fx { display:none !important; }
+html[data-skin="mtrx"] * { border-radius:0 !important; box-shadow:none !important; text-shadow:none !important; }
+html[data-skin="mtrx"] .ov-title { color:#0b0b0b !important; }
+html[data-skin="mtrx"] .ov-lede { color:#333333 !important; }
+html[data-skin="mtrx"] .ov-brand { color:#8a8a88 !important; }
+html[data-skin="mtrx"] .ov-mark { color:#0b0b0b !important; }
+html[data-skin="mtrx"] .ov-rule { background:#b9b9b6 !important; }
+html[data-skin="mtrx"] .eyebrow-index, html[data-skin="mtrx"] .lib-h,
+html[data-skin="mtrx"] .ov-guide h3 { color:#0b0b0b !important; }
+html[data-skin="mtrx"] .eyebrow-label { color:#8a8a88 !important; }
+html[data-skin="mtrx"] .stage-copy, html[data-skin="mtrx"] .ov-lede { color:#333333 !important; }
+html[data-skin="mtrx"] .tab-wrapper { background:#e9e9e7 !important; }
+html[data-skin="mtrx"] .tabitem { background:#ffffff !important; border-color:#e3e3e1 !important; }
+html[data-skin="mtrx"] [role=tab] { color:#6a6a68 !important; }
+html[data-skin="mtrx"] [role=tab]:hover { color:#0b0b0b !important; }
+html[data-skin="mtrx"] [role=tab].selected { color:#0b0b0b !important; border-bottom-color:#0b0b0b !important; }
+html[data-skin="mtrx"] button.primary, html[data-skin="mtrx"] .primary { background:#0b0b0b !important; color:#ffffff !important; border-color:#0b0b0b !important; font-weight:600 !important; }
+html[data-skin="mtrx"] button.primary:hover { background:#000000 !important; }
+/* AINF's own baked button rules sit at .gradio-container .contain button.secondary
+   (specificity 0,4,1) and are !important — match that shape or they win. Ghost
+   buttons: hairline gone, ink border, ink fill on hover (MTRX rule). */
+html[data-skin="mtrx"] .gradio-container .contain button.secondary,
+html[data-skin="mtrx"] .gradio-container .contain button.sm,
+html[data-skin="mtrx"] .gradio-container .contain button.stop,
+html[data-skin="mtrx"] .contain button.secondary, html[data-skin="mtrx"] .contain button.sm {
+  background: transparent !important; color:#0b0b0b !important;
+  border: 1px solid #0b0b0b !important; font-weight:600 !important; }
+html[data-skin="mtrx"] .gradio-container .contain button.secondary:hover,
+html[data-skin="mtrx"] .gradio-container .contain button.sm:hover,
+html[data-skin="mtrx"] .contain button.secondary:hover, html[data-skin="mtrx"] .contain button.sm:hover {
+  background:#0b0b0b !important; color:#ffffff !important; }
+html[data-skin="mtrx"] .gradio-container .contain button.stop { border-color:#0b0b0b !important; }
+html[data-skin="mtrx"] .gradio-container .contain button.stop:hover { background:#000000 !important; color:#ffffff !important; }
+html[data-skin="mtrx"] .gradio-container .contain button.primary,
+html[data-skin="mtrx"] .contain button.primary { background:#0b0b0b !important; color:#ffffff !important; border-color:#0b0b0b !important; }
+html[data-skin="mtrx"] .gradio-container .contain button.primary:hover,
+html[data-skin="mtrx"] .contain button.primary:hover { background:#000000 !important; }
+html[data-skin="mtrx"] button.secondary, html[data-skin="mtrx"] button.sm { background:transparent !important; color:#0b0b0b !important; border:1px solid #0b0b0b !important; font-weight:600 !important; }
+html[data-skin="mtrx"] button.secondary:hover, html[data-skin="mtrx"] button.sm:hover { background:#0b0b0b !important; color:#ffffff !important; }
+html[data-skin="mtrx"] button.stop { color:#0b0b0b !important; border-color:#333333 !important; }
+html[data-skin="mtrx"] textarea, html[data-skin="mtrx"] input[type=text],
+html[data-skin="mtrx"] input[type=number], html[data-skin="mtrx"] select { background:#ffffff !important; color:#0b0b0b !important; border-color:#b9b9b6 !important; }
+html[data-skin="mtrx"] textarea:focus, html[data-skin="mtrx"] input:focus { border-color:#0b0b0b !important; }
+html[data-skin="mtrx"] input[type=checkbox] { border:1px solid #b9b9b6 !important; background:#ffffff !important; }
+html[data-skin="mtrx"] input[type=checkbox]:checked { background:#0b0b0b !important; border-color:#0b0b0b !important; }
+html[data-skin="mtrx"] input[type=checkbox]:checked::after { border-color:#ffffff !important; }
+html[data-skin="mtrx"] input[type=range], html[data-skin="mtrx"] input[type=radio] { accent-color:#0b0b0b !important; }
+html[data-skin="mtrx"] .ov-settings, html[data-skin="mtrx"] .ov-dock { background:#ffffff !important; border-color:#e3e3e1 !important; }
+html[data-skin="mtrx"] .ov-foot { background:#000000 !important; color:#b9b9b6 !important; border-color:#000000 !important; }
+html[data-skin="mtrx"] .ov-out, html[data-skin="mtrx"] .ov-hint { background:#ffffff !important; border-color:#e3e3e1 !important; }
+html[data-skin="mtrx"] #ov-console textarea { color:#333333 !important; background:#ffffff !important; }
+html[data-skin="mtrx"] .tag { background:#ffffff !important; color:#8a8a88 !important; border-color:#e3e3e1 !important; }
+html[data-skin="mtrx"] .tag-on { color:#0b0b0b !important; border-color:#0b0b0b !important; }
+html[data-skin="mtrx"] .tag-warn { color:#333333 !important; border-color:#333333 !important; }
+html[data-skin="mtrx"] .tag::before, html[data-skin="mtrx"] .tag::after { color:#b9b9b6 !important; }
+html[data-skin="mtrx"] .ov-tip { background:#ffffff !important; border-color:#e3e3e1 !important; border-left-color:#0b0b0b !important; color:#333333 !important; }
+html[data-skin="mtrx"] ul.options, html[data-skin="mtrx"] .options { background:#ffffff !important; border-color:#e3e3e1 !important; }
+html[data-skin="mtrx"] ul.options li { color:#0b0b0b !important; }
+html[data-skin="mtrx"] ul.options li.selected, html[data-skin="mtrx"] ul.options li:hover, html[data-skin="mtrx"] ul.options li.active { background:#ececea !important; }
+html[data-skin="mtrx"] #lib-table [data-testid^="cell-"] { color:#0b0b0b !important; }
+html[data-skin="mtrx"] #lib-table [data-testid^="cell-"]:hover { background:#ececea !important; }
+html[data-skin="mtrx"] #lib-table button { color:#0b0b0b !important; }
+html[data-skin="mtrx"] #lib-table button:hover { color:#333333 !important; }
+html[data-skin="mtrx"] .ov-guide code { background:#ffffff !important; color:#0b0b0b !important; border-color:#e3e3e1 !important; }
+html[data-skin="mtrx"] .prose, html[data-skin="mtrx"] .md { color:#0b0b0b !important; }
+/* gradio's baked theme colors that don't route through our vars */
+html[data-skin="mtrx"] body { color:#0b0b0b !important; }
+html[data-skin="mtrx"] .gradio-container, html[data-skin="mtrx"] .gradio-container main,
+html[data-skin="mtrx"] .contain { color:#0b0b0b !important; }
+html[data-skin="mtrx"] .or, html[data-skin="mtrx"] time,
+html[data-skin="mtrx"] a.run-history, html[data-skin="mtrx"] button.playback.icon { color:#8a8a88 !important; }
+html[data-skin="mtrx"] a.run-history:hover { color:#0b0b0b !important; }
+html[data-skin="mtrx"] button.playback.icon { border-top-color:#3a3a38 !important; border-bottom-color:#3a3a38 !important; }
+html[data-skin="mtrx"] .info-text, html[data-skin="mtrx"] .icon { color:#6a6a68 !important; }
+html[data-skin="mtrx"] .ov-label, html[data-skin="mtrx"] label span { color:#5a5a58 !important; }
+html[data-skin="mtrx"] .divider { color:#8a8a88 !important; border-color:#e3e3e1 !important; }
+html[data-skin="mtrx"] button.icon, html[data-skin="mtrx"] .play-pause-button,
+html[data-skin="mtrx"] button.icon svg, html[data-skin="mtrx"] .play-pause-button svg {
+  color:#8a8a88 !important; fill:#8a8a88 !important; stroke:#8a8a88 !important; }
+html[data-skin="mtrx"] button.playback.icon { border-left-color:#3a3a38 !important; border-right-color:#3a3a38 !important; }
+html[data-skin="mtrx"] .ov-head, html[data-skin="mtrx"] .ov-lede, html[data-skin="mtrx"] .stage-copy { color:#0b0b0b !important; }
+html[data-skin="mtrx"] .icon:hover { color:#0b0b0b !important; }
+html[data-skin="mtrx"] input { color:#0b0b0b !important; background-color:#ffffff !important; border-color:#b9b9b6 !important; }
+html[data-skin="mtrx"] input::placeholder, html[data-skin="mtrx"] textarea::placeholder { color:#8a8a88 !important; }
+
+/* skin picker chips (footer) */
+.ov-skin { all: unset; cursor: pointer; font-family: var(--ov-mono); font-size: 11.5px; letter-spacing: .08em;
+  color: var(--ov-steel); border: 1px solid var(--ov-border); background: var(--ov-panel); padding: 3px 8px;
+  border-radius: 2px; margin-left: 8px; }
+.ov-skin::before { content: "["; color: var(--ov-fog); margin-right: 4px; }
+.ov-skin::after { content: "]"; color: var(--ov-fog); margin-left: 4px; }
+.ov-skin.is-active { color: var(--ov-green); border-color: var(--ov-steel-strong); }
+.ov-skin:hover { color: var(--ov-bone); }
+.ov-skin-label { color: var(--ov-ash); margin-right: 2px; }
+.ov-foot .ov-foot-right { display: flex; align-items: center; }
+html[data-skin="mtrx"] .ov-skin { color:#b9b9b6 !important; border-color:#3a3a38 !important; background:#000000 !important; }
+html[data-skin="mtrx"] .ov-skin.is-active { color:#000000 !important; background:#ffffff !important; border-color:#ffffff !important; }
+html[data-skin="mtrx"] .ov-skin:hover { color:#ffffff !important; }
+
+/* ---- 08 · Skins picker (tab cards) -------------------------------- */
+/* Cards read the live --ov-* vars, so they repaint with the skin; only the
+   mini previews carry fixed colors — they show the OTHER skin. */
+.ov-skins { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin: 20px 0 8px; }
+.ov-skin-card { all: unset; cursor: pointer; box-sizing: border-box; display: flex; flex-direction: column; gap: 9px;
+  text-align: left; font-family: var(--ov-mono); color: var(--ov-text); background: var(--ov-panel);
+  border: 1px solid var(--ov-border); padding: 14px; }
+.ov-skin-card:hover { border-color: var(--ov-steel-strong); }
+.ov-skin-card.is-active { border-color: var(--ov-accent-line); }
+.ov-skin-card.is-active:hover { border-color: var(--ov-green); }
+.ov-prev { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 10px 46px 14px; gap: 6px;
+  height: 116px; padding: 10px; box-sizing: border-box; }
+.ov-prev span { display: block; }
+.ov-prev .pv-wide { grid-column: 1 / -1; }
+.ov-prev-ainf { background:#060906; border: 1px solid #233026; }
+.ov-prev-ainf .pv-head { background:#131a14; }
+.ov-prev-ainf .pv-l { background:#0d120e; border:1px solid #233026; }
+.ov-prev-ainf .pv-r { background:#030503; border:1px solid #233026; }
+.ov-prev-ainf .pv-acc { background:#5be35a; }
+.ov-prev-mtrx { background:#e9e9e7; border: 1px solid #c9c9c6; }
+.ov-prev-mtrx .pv-head { background:#0b0b0b; }
+.ov-prev-mtrx .pv-l { background:#ffffff; border:1px solid #e3e3e1; }
+.ov-prev-mtrx .pv-r { background:#ffffff; border:1px solid #e3e3e1; }
+.ov-prev-mtrx .pv-acc { background:#0b0b0b; }
+.ov-skin-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ov-skin-name { font-family: var(--ov-mono); font-size: 12px; letter-spacing: .14em; color: var(--ov-bone); }
+.ov-skin-idx { font-family: var(--ov-mono); font-size: 10.5px; letter-spacing: .1em; color: var(--ov-fog); }
+.ov-skin-codes { font-family: var(--ov-mono); font-size: 10.5px; letter-spacing: .08em; color: var(--ov-fog); }
+.ov-skin-desc { font-family: var(--ov-sans); font-size: 12.5px; line-height: 1.6; color: var(--ov-steel); }
+.ov-skin-flag { font-family: var(--ov-mono); font-size: 10.5px; letter-spacing: .16em; color: var(--ov-green);
+  visibility: hidden; }
+.ov-skin-card.is-active .ov-skin-flag { visibility: visible; }
+html[data-skin="mtrx"] .ov-skin-card { background:#ffffff !important; border-color:#e3e3e1 !important; }
+html[data-skin="mtrx"] .ov-skin-card:hover { border-color:#0b0b0b !important; }
+html[data-skin="mtrx"] .ov-skin-card.is-active { border-color:#0b0b0b !important; }
+html[data-skin="mtrx"] .ov-skin-card.is-active .ov-skin-flag { color:#0b0b0b !important; }
+"""
+
+
 def _render_css():
     css = _CSS_TEMPLATE
     for k, v in C.items():
         css = css.replace(f"%({k})s", v)
-    return font_faces() + css
+    return font_faces() + css + _SKIN_CSS
 
 
 CSS = _render_css()
@@ -1206,6 +1396,36 @@ document.documentElement.lang = 'en';
 (() => { const u = new URL(window.location);
   if (u.searchParams.get('__theme') !== 'dark') { u.searchParams.set('__theme','dark'); window.location.replace(u); } })();
 </script>
+<script>
+/* Skin system: default (AINF green) or achromatic MTRX. Choice persists in
+   localStorage and is applied before first paint (FOUC guard). */
+(() => {
+  const KEY = "ov-skin";
+  const apply = () => {
+    const skin = localStorage.getItem(KEY) || "ainf";
+    document.documentElement.setAttribute("data-skin", skin);
+  };
+  apply();
+  window.__ovSkin = apply;
+  const sync = () => {
+    const skin = localStorage.getItem(KEY) || "ainf";
+    document.querySelectorAll("[data-skin-choice]").forEach((b) => {
+      const on = b.getAttribute("data-skin-choice") === skin;
+      if (b.classList.contains("is-active") !== on) b.classList.toggle("is-active", on);
+    });
+  };
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-skin-choice]");
+    if (!b) return;
+    localStorage.setItem(KEY, b.getAttribute("data-skin-choice"));
+    apply(); sync();
+    window.dispatchEvent(new Event("ov-skin"));
+  });
+  const pend = () => { sync(); };
+  new MutationObserver(pend).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener("DOMContentLoaded", sync);
+})();
+</script>
 """
 
 
@@ -1224,6 +1444,34 @@ def _board_head():
 
 FORCE_DARK = _HEAD_BASE + _board_head()
 
+
+SKINS = [
+    ("ainf", "01", "AINF · AIINFLUENCE", "#060906 · #233026 · #5BE35A",
+     "The default look: near-black board, signal-green accents, mono labels, live PCB traces moving behind the panels."),
+    ("mtrx", "02", "MTRX SUPPLY", "#E9E9E7 · #0B0B0B · NO COLOR",
+     "Concrete canvas, ink type, ghost buttons, hard 0px edges, no shadows, no color at all. The board background switches off."),
+]
+
+
+def skin_picker_html():
+    """Two clickable cards; the client script (see _HEAD_BASE) switches data-skin."""
+    out = []
+    for key, idx, name, codes, desc in SKINS:
+        on = " is-active" if key == "ainf" else ""
+        out.append(
+            f'<button class="ov-skin-card{on}" data-skin-choice="{key}" title="Use the {name} skin">'
+            f'<span class="ov-prev ov-prev-{key}" aria-hidden="true">'
+            f'<span class="pv-head pv-wide"></span><span class="pv-l"></span>'
+            f'<span class="pv-r"></span><span class="pv-acc pv-wide"></span></span>'
+            f'<span class="ov-skin-row"><span class="ov-skin-name">{name}</span>'
+            f'<span class="ov-skin-idx">{idx}</span></span>'
+            f'<span class="ov-skin-codes">{codes}</span>'
+            f'<span class="ov-skin-desc">{desc}</span>'
+            f'<span class="ov-skin-flag">[ IN USE ]</span>'
+            f'</button>'
+        )
+    return '<div class="ov-skins">' + "".join(out) + "</div>"
+
 # ---------------------------------------------------------------------------
 # Guide copy
 # ---------------------------------------------------------------------------
@@ -1233,7 +1481,7 @@ GUIDE = """
 ### Start here
 The model loads the first time you generate, which takes a minute and downloads about 3.3 GB on the very first run. If you'd rather load it up front, go to the MODEL tab and press Load model. Everything you make is saved as a WAV file, with a small JSON file next to it that records the settings, so you can always find out how a clip was made.
 
-A built-in demo voice, **Aria**, comes preloaded in `voices/` on first launch so you can hear OmniVoice in action before you save anything — pick it as a saved voice on any tab and generate. Delete it from the Library whenever you like; it won't come back.
+There is a built-in demo voice, **Aria**, meant to let you hear OmniVoice before you save anything: when `assets/default_voice/` holds the shipped `Aria` files, it is copied into `voices/` on first launch and you can pick it as a saved voice on any tab. If `voices/` has no Aria, build it once with `python tools/make_default_voice.py` (it speaks a sample line and needs the model to load). Delete Aria from the Library whenever you like; it won't come back.
 
 ### Cloning a voice
 Give it a clean clip of 3 to 10 seconds with one person talking and no music behind them. Longer clips don't help: they slow generation down and can make the result worse. If you type the exact words spoken in the clip into the transcript box, cloning is more accurate. Leave it empty and Whisper will write it for you, or press Transcribe to fill it in and correct it yourself.
@@ -1269,6 +1517,9 @@ Your outputs folder, live. Every clip (including batch runs) shows up in the tab
 
 ### Model
 You can point the app at a different checkpoint or a fine-tuned folder, or apply a LoRA adapter folder that holds `adapter_config.json`. The settings are remembered. Unload the model when you need the GPU for something else; anything else holding VRAM slows generation down or makes it fail.
+
+### Skins
+The SKINS tab switches the whole interface between two looks: **AINF**, the dark green default, and **MTRX SUPPLY**, an achromatic concrete-and-ink version with the animated board switched off. It is one click, no reload, and it is remembered per browser — it changes nothing about models, voices or outputs. The same switch sits in the footer on every tab.
 
 ### Use it responsibly
 Only clone voices you have permission to use. Don't use this for impersonation, fraud or anything that deceives people.
@@ -1551,6 +1802,23 @@ def build():
                             'chosen automatically.</p></div>'
                         )
 
+            # 08 SKINS ---------------------------------------------------
+            with gr.Tab("08 · Skins", elem_id="tab-skins"):
+                gr.HTML(eyebrow("08", "Skins",
+                                "Two looks on the same engine. Click one and the whole app repaints; the choice is "
+                                "saved in this browser."))
+                gr.HTML(skin_picker_html())
+                gr.HTML(
+                    '<div class="ov-guide">'
+                    '<h3>How it works</h3><p>A skin is a CSS layer switched in the browser — no reload, nothing to '
+                    'install, no effect on models, voices or outputs. It is remembered per browser, so another '
+                    'machine can wear another skin.</p>'
+                    '<h3>MTRX SUPPLY</h3><p>Achromatic by design: concrete canvas, ink type, ghost buttons, zero '
+                    'radius, no shadows, no gradients. The animated board background switches off in this skin.</p>'
+                    '<h3>Footer</h3><p>The AINF / MTRX chips at the bottom of every screen switch the same setting.</p>'
+                    '</div>'
+                )
+
             # GUIDE ------------------------------------------------------
             with gr.Tab("How to use", elem_id="tab-guide"):
                 gr.HTML(eyebrow("··", "Guide", "How to get good results out of each tab."))
@@ -1567,7 +1835,10 @@ def build():
         gr.HTML(
             '<div class="ov-foot"><span>OMNIVOICE · K2-FSA · APACHE-2.0 &nbsp;/&nbsp; OUTPUTS IN ./outputs '
             '&nbsp;/&nbsp; VOICES IN ./voices &nbsp;/&nbsp; AIINFLUENCE</span>'
-            '<span>BOARD<button class="ov-fx is-on" title="Animated board background">FX ON</button></span></div>'
+            '<span class="ov-foot-right"><span class="ov-skin-label">SKIN</span>'
+            '<button class="ov-skin is-active" data-skin-choice="ainf" title="Default AIINFLUENCE skin">AINF</button>'
+            '<button class="ov-skin" data-skin-choice="mtrx" title="MTRX SUPPLY achromatic skin">MTRX</button>'
+            '<span style="width:14px"></span>BOARD<button class="ov-fx is-on" title="Animated board background">FX ON</button></span></div>'
         )
 
         # ---- wiring -----------------------------------------------------

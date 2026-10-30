@@ -22,7 +22,8 @@
     document.body.prepend(bg);
     const canvas = bg.querySelector("canvas");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let enabled = localStorage.getItem(KEY) !== "off";
+    const skinOff = () => document.documentElement.getAttribute("data-skin") === "mtrx";
+    let enabled = localStorage.getItem(KEY) !== "off" && !skinOff();
     document.documentElement.classList.toggle("ov-fx-off", !enabled);
     const syncBtn = () => document.querySelectorAll(".ov-fx").forEach((b) => {
       const label = enabled ? "FX ON" : "FX OFF";
@@ -35,6 +36,12 @@
       localStorage.setItem(KEY, enabled ? "on" : "off");
       document.documentElement.classList.toggle("ov-fx-off", !enabled);
       syncBtn();
+      if (enabled && window.__ovFxKick) window.__ovFxKick();
+    });
+    // Live skin switch: achromatic MTRX pauses the board animation.
+    window.addEventListener("ov-skin", () => {
+      enabled = localStorage.getItem(KEY) !== "off" && !skinOff();
+      document.documentElement.classList.toggle("ov-fx-off", !enabled);
       if (enabled && window.__ovFxKick) window.__ovFxKick();
     });
     // Gradio re-renders HTML blocks; re-sync the footer button only when one is (re)added.
